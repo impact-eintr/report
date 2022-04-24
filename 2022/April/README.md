@@ -52,3 +52,178 @@
 ## Day.23
 
 今天搞毕设，对接了一下前端的小伙伴，直接不用看es了，小伙伴帮我过滤查询结果：）。在做文件hash计算的时候，前端那边不太能处理Binary，就搞了一下进制转换弄成了Hex。缩略图暂时放弃了，但是论文里还是得水的：）。小伙伴提到用经纬度进行文件定位，把原本的path更换成了location，具体的查询还是前端对全量数据的过滤。原本准备写一下Dynamic Array，估计得明天了。
+
+## Day.24
+
+学习了一下Emacs-Lisp的简单使用
+``` emacs-lisp
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with C-x C-f and enter text in its buffer.
+(+3 (+1 2))
+
+(defun hello(name)(insert "Hello "name))
+(hello "you")
+(hello "eintr")
+)
+(progn
+(switch-to-buffer-other-window "*test")
+(hello "you"))
+
+(progn
+(switch-to-buffer-other-window "*test")
+(erase-buffer)
+(hello "there"))
+
+(progn
+(switch-to-buffer-other-window "*test")
+(erase-buffer)
+(hello "you")
+(other-window 1))
+
+(let ((local-name "eintr"))
+(switch-to-buffer-other-window "*test")
+(erase-buffer)
+(hello local-name)
+(other-window 1))
+
+(format "Hello %s!\n" "eintr")
+
+(defun hello(name)
+(insert (format "Hello %s!\n" name)))
+
+(hello "eintr")
+
+(defun greeting(name)
+(let ((your-name "eintr"))
+  (insert(format "\nHello %s!\nI am %s."
+		 name
+		 your-name))))
+(greeting "impact")
+Hello impact!
+I am eintr.
+
+(defun greeting(from-name)
+(let ((your-name (read-from-minibuffer "Enter your name:")))
+  (insert(format "\nHello %s!\nI am %s."
+		 from-name
+		 your-name))))
+(greeting "eintr")
+Hello eintr!
+I am impact.
+
+(defun greeting(from-name)
+(let ((your-name (read-from-minibuffer "Enter your name:")))
+  (switch-to-buffer-other-window "*test")
+  (erase-buffer)
+  (insert(format "\nHello %s!\nI am %s."
+		 from-name
+		 your-name))
+  (other-window 1)))
+
+(greeting "you")
+
+
+(setq list-of-names '("eintr" "song" "impact"))
+
+(mapcar 'hello list-of-names)Hello eintr!
+Hello song!
+Hello impact!
+
+
+(defun greeting()
+  (switch-to-buffer-other-window "*test")
+  (erase-buffer)
+  (mapcar `hello list-of-names)
+  (other-window 1))
+
+(greeting)
+
+(defun hello-to-hi()
+(switch-to-buffer-other-window "*test")
+(erase-buffer)
+(mapcar 'hello list-of-names)
+(goto-char (point-min))
+(while (search-forward "Hello" nil t)
+(replace-match "Hi"))
+(other-window 1))
+
+(hello-to-hi)
+
+(defun boldify-names()
+(switch-to-buffer-other-window "*another buffer")
+(goto-char (point-min))
+(while (re-search-forward "Hi \\(.+\\)!" nil t)
+  (add-text-properties (match-beginning 1)
+		       (match-end 1)
+		       (list 'bold)))
+(other-window 1))
+```
+
+把dynamic array写了一下，没啥特殊的allocate/free 对应的内存需要的时候容量翻倍。
+
+把double linked list 写了一下，感受了一下c的面向对象编程，即用在结构体定义中仅仅使用函数指针，在使用子类实现的时候则使用local的函数进行初始化。
+
+基类 或者 这个应该叫接口更合适一点
+
+``` c++
+typedef struct
+{
+    uint64_t (*construct_node)();
+    int (*destruct_node)(uint64_t);
+
+    int (*is_null_node)(uint64_t);
+
+    int (*compare_nodes)(uint64_t, uint64_t);
+
+    uint64_t (*get_node_prev)(uint64_t);
+    int (*set_node_prev)(uint64_t, uint64_t);
+
+    uint64_t (*get_node_next)(uint64_t);
+    int (*set_node_next)(uint64_t, uint64_t);
+
+    uint64_t (*get_node_value)(uint64_t);
+    int (*set_node_value)(uint64_t, uint64_t);
+} linkedlist_node_interface;
+
+```
+
+派生类 或者叫 实现
+``` c++
+void linkedlist_validate_interface(linkedlist_node_interface *i_node, uint64_t flags) {...}
+
+static int is_null_node(uint64_t node_id) {...}
+
+static uint64_t construct_node() {...}
+
+static int destruct_node(uint64_t node_id) {...}
+
+static int compare_nodes(uint64_t first, uint64_t second) {...}
+
+static uint64_t get_node_prev(uint64_t node_id) {...}
+
+static int set_node_prev(uint64_t node_id, uint64_t prev_id) {...}
+
+static uint64_t get_node_next(uint64_t node_id) {...}
+
+static int set_node_next(uint64_t node_id, uint64_t next_id) {...}
+
+static uint64_t get_node_value(uint64_t node_id) {...}
+
+static int set_node_value(uint64_t node_id, uint64_t value) {...}
+
+
+static linkedlist_node_interface i_node =
+{
+    .construct_node = &construct_node,
+    .destruct_node = &destruct_node,
+    .is_null_node = &is_null_node,
+    .compare_nodes = &compare_nodes,
+    .get_node_prev = &get_node_prev,
+    .set_node_prev = &set_node_prev,
+    .get_node_next = &get_node_next,
+    .set_node_next = &set_node_next,
+    .get_node_value = &get_node_value,
+    .set_node_value = &set_node_value
+};
+
+```
