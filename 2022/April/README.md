@@ -227,3 +227,6 @@ static linkedlist_node_interface i_node =
 };
 
 ```
+
+## Day.25
+今天继续写论文，有点难搞，要把blog改成文邹邹的论文，感觉自己都不会说人话了。
