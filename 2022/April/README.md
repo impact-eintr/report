@@ -230,3 +230,75 @@ static linkedlist_node_interface i_node =
 
 ## Day.25
 今天继续写论文，有点难搞，要把blog改成文邹邹的论文，感觉自己都不会说人话了。
+
+## Day.26
+今天来解析elf文件，阳明佬的txt版本
+
+``` c++
+//unsigned long long bias; // global, object, common
+//// global, func, .text
+//unsigned long long sum(unsigned long long *a, unsigned long long n) {
+//  unsigned long long i, s = 0;
+//  for (i = 0;i < n;++i) {
+//    s += a[i];
+//  }
+//  return s + bias;
+//}
+
+// count of effective lines
+28
+
+// count of section header table lines
+2
+
+// begin of sht
+// sh_name,sh_addr,sh_ofset,sh_size(lines)
+.text,0x0,4,22
+.symtab,0x0,26,2
+
+// .text section
+push   %rbp
+mov    %rsp,%rbp
+mov    %rdi,-0x18(%rbp)
+mov    %rsi,-0x20(%rbp)
+movq   $0x0,-0x8(%rbp)
+movq   $0x0,-0x10(%rbp)
+jmp    3d <sum+0x3d>
+mov    -0x10(%rbp),%rax
+lea    0x0(,%rax,8),%rdx
+mov    -0x18(%rbp),%rax
+add    %rdx,%rax
+mov    (%rax),%rax
+add    %rax,-0x8(%rbp)
+addq   $0x1,-0x10(%rbp)
+mov    -0x10(%rbp),%rax
+cmp    -0x20(%rbp),%rax
+jb     1e <sum+0x1e>
+mov    0x0(%rip),%rdx
+mov    -0x8(%rbp),%rax
+add    %rdx,%rax
+pop    %rbp
+ret
+
+// .symtab
+// st_name,bind,type,st_shndex,st_value,st_size
+sum,STB_GLOBAL,STT_FUNC,.text,0,22
+bias,STB_GLOBAL,STT_OBJECT,COMMON,8,8
+```
+
+开头是源代码，第一行是有效行，第二行是节头表个数，第三行开始是节头表，每行是一个表项，节头表完了是不同的section。
+
+.text的来源：
+
+`gcc -c sum.c` `objdump -D sum.o > sum.txt` 在sum.txt中可以找到.text section 的内容。
+
+.symtab的来源
+
+1. 根据规则自己推
+2. `readelf -s sum.o`可以直接解析 
+
+偏移什么的都需要自己算。
+
+通过解析这个文件就能构造出一个elf对象，进而进行符号解析。
+
+多个elf对象可以进行链接，符号解析和静态链接明天写。
