@@ -302,3 +302,39 @@ bias,STB_GLOBAL,STT_OBJECT,COMMON,8,8
 通过解析这个文件就能构造出一个elf对象，进而进行符号解析。
 
 多个elf对象可以进行链接，符号解析和静态链接明天写。
+
+## Day.27
+今天写符号解析，写的人都麻了，那个结构翻来覆去简直了。总的来说，今天将多个elf对象组合成了一个，如何组合呢？使用符号表进行判断.
+
+``` c++
+typedef struct
+{
+  elf_t       *elf;   // src elf file
+  st_entry_t  *src;   // src symbol
+  st_entry_t  *dst;   // dst symbol: used for relocation - find the function referencing the undefined symbol
+} smap_t;
+
+```
+
+首先，将多个elf指针数组和数量传入，遍历这些对象，对于每个对象，再去遍历它的symbol_table，如果这个symbol_table_entry的bind是STB_LOCAL,那么就是一个本地符号，直接添加到映射smap_t中，否则就是STB_GLOBAL的，需要进行判断，再次遍历smap_table，寻找冲突，如果有重名的符号，进行优先级判断。
+
+``` c++
+// rule 1: multiple strong symbols with the same name are not allowed
+// rule 2: given a strong symbol and multiple weak symbols with the same name, choose the strong symbol
+// rule 3: given multiple weak symbols with the same name, choose any of the weak symbols
+```
+处理结束后，就完成了符号解析。这个合并结束的符号表并不能直接写到最终的EOF中，需要同section_offset一起重新计算每一项的偏移值。
+
+需要计算的有：.text .rodata .data .symtab。读取smap_stable,统计其中每一个.text、rodata、.data section的数目，则有效行数=1+1+(1+1+1 这几项如果有的话)+text_count+rodata_count+data_count+smap_table_count =>effective_lines+sht_count+sht+sections
+
+sht计数=1+1+1(如果这几项有的话)
+
+sht_entry中的偏移值:section_offset从1+1+sht_count开始，对每个section分别计算，累加其sh_size。并获取sh_name、sh_addr、sh_offset(值为section_offset)、sh_size
+
+这样推导出了sht_entry的内容,但这只是sht,真正的section内容还没有写入，所以下一步是合并section内容。
+
+首先是遍历合并后的节头表(dst)，对每个section遍历所有elf对象，对每个对象遍历其节头表，如果有节与当前节的名字相同，说明这一节的内容可能有用，进入该节。在这个节中，我们需要使用该elf对象的符号表进行判断，遍历其符号表，如果有符号的sh_shndx与dst->sh_name相同，说明，该elf文件中有符号引用到了目标节。我们去smap_table中检查一下，看这个符号是否是一个有定义的符号，如果是，将它对应的section内容复制到dst->buffer中，如果不是，那么这是一个extern的无定义符号，不予理睬。(这一段逻辑写的人麻了)
+
+接下来就应该是处理重定位了，这个明天写，果然没那么容易。。。
+
+
